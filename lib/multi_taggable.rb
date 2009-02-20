@@ -97,7 +97,7 @@ module TagTeamInteractive
 		end
 		
 		module InstanceMethods
-			def set_multi_tag_list(context, list, tagger = :multi_taggable_default_tagger)
+			def set_multi_tag_list(list, context, tagger = :multi_taggable_default_tagger)
 				init_or_get_tag_list(context, tagger).update(list)
 			end
 			

@@ -50,7 +50,7 @@ pretty flexible at the cost of slightly clunkier syntax.
 	bookmark.save
 	
 	>> bookmark.multi_tag_list("tags")
-	=> ["new", "awesome", "interesting", "dull", "boring", "old"]
+	=> ["blue", "green", "new", "awesome", "interesting", "dull", "boring", "old"]
 
 	>> bookmark.multi_tag_list("tags", User.find(1))
 	=> ["new", "awesome", "interesting"]
@@ -93,3 +93,31 @@ don't know.
 Because a tagging requires multiple pieces of information, there isn't a simple setter added to the
 model. You'll have to manually call #set_multi_tag_list on you model instances to set/update tags,
 but hey, you get awesome functionality in exchange.
+
+You might notice that there are the traditional "taggings" and "tags" tables found in every other
+tagging plugin ever. There's also a "name" field on the multi_taggings table. WTF? It turns out that
+there's a good reason for that.
+
+If you're using a database that supports binary collations, then the "name" field on the taggings
+table should have said binary collation (utf8_bin for MySQL, for example). This allows for case-
+sensitive operations on that field effectively letting each user control the capitalization of their
+individual tagging. In traditional systems that just join against the tags table, you end up with
+all users having to share the same capitalization for a given tag...and well, that's just bound to
+drive some OCD user totally nuts. As an added bonus, denormalizing the field like this gets us a 
+whole host of performance benefits, namely in that we get to eliminate a join when querying tags,
+which really adds up for giant "find me stuff tagged like this" queries.
+
+So why have the tags table at all? Why, to provide a numeric indexed primary key for the case-
+insensitive version of the tag, of course. We could accomplish the same thing with a varchar
+downcase_name field on the taggings, of course, but that's slow and takes more memory, unless you
+never have any tags over 4 bytes large. Having an integer key to query on for the tag makes timely
+execution of things like "Find me all titles tagged with x and y" possible without terrifying things
+like cartesian joins of the taggings table.
+
+Finally, this leaves the Tag model open to some very interesting additional functionality. Presume
+that you are using multi_taggable to tag people onto movies in various roles. A single person might
+be both an actor and director on different movies, but they're the same person. The Tag model lets
+us represent that, and we can attach various information to that Tag, like a picture or a bio or
+whatever is appropriate for your application.
+
+Yes, it's funky. But that's okay, because it's also makes it funky fast and funky flexible.
